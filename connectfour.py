@@ -8,15 +8,13 @@ from time import sleep
 #
 #       Support for multiple board sizes (aka remove the hardcoded numbers in loops)
 #       Pretty interface (maybe pygame)
-#
-#       HIGHEST PRIORITY - FIGURE OUT EFFICIENT AND FUNCTIONING WINNER DETECTION ALGORITHM
 
 
-# don't worry about it...
+# lol
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-O = "O"  # orange player
-B = "B"  # blue player
+O = "O"  # player O
+X = "X"  # player X
 
 EMPTY = None
 
@@ -54,21 +52,21 @@ def get_player(board):
     Returns the next player when provided a game board.
     """
 
-    count_b = 0
+    count_x = 0
     count_o = 0
 
     for row in board:
         for val in row:
-            if val == B:
-                count_b += 1
+            if val == X:
+                count_x += 1
             elif val == O:
                 count_o += 1
 
     # since B goes first, it's only O's turn if there's more of B on the board
-    if count_b > count_o:
+    if count_x > count_o:
         return O
 
-    return B
+    return X
 
 
 def terminal(board):
@@ -106,7 +104,7 @@ def winner(board):
     Returns the winner of the game, if there is one.
     """
 
-    # This is currently the slowest and worst function of the entire script...
+    # I'll keep thinking about a faster algorithm
 
     def does_square_contain_win(i, j):
 
@@ -118,26 +116,25 @@ def winner(board):
             [[i, j], [i - 1, j], [i - 2, j], [i - 3, j]],
         ]
 
-        counter = 1
         last_seen_val = None
 
-        # apply each mask to check winner
         for mask in masks:
+            counter = 0
             for elem in mask:
-                try:
-                    if board[elem[0]][elem[1]] == last_seen_val:
+                if (
+                    0 <= elem[0] < 6 and 0 <= elem[1] < 7
+                ):  # check if indices are within bounds
+                    curr_elem = board[elem[0]][elem[1]]
+                    if curr_elem == last_seen_val:
                         counter += 1
                         if counter == 4:
-                            if last_seen_val == "O":
-                                return O
-                            elif last_seen_val == "B":
-                                return B
+                            return last_seen_val
                     else:
-                        last_seen_val = board[elem[0]][elem[1]]
-                        counter = 1
-                # exception handling to ignore the index out of range exception
-                except:
-                    pass
+                        if curr_elem != " ":
+                            last_seen_val = curr_elem
+                            counter = 1
+                else:
+                    break
 
         return None
 
@@ -173,12 +170,12 @@ def result(board, action_col):
 
 def utility(board):
     """
-    Returns 1 if B has won the game, -1 if O has won, 0 otherwise.
+    Returns 1 if X has won the game, -1 if O has won, 0 otherwise.
     """
 
     win = winner(board)
 
-    if win == "B":
+    if win == "X":
         return 1
     elif win == "O":
         return -1
@@ -228,7 +225,7 @@ def minimax(board, max_actions_to_explore):
     player = get_player(board)
     possible_actions = actions(board)
 
-    if player == "B":  # maximizing player
+    if player == "X":  # maximizing player
         highest_util = float("-inf")
         best_action = None
 
@@ -272,24 +269,24 @@ def main():
 
     os.system("cls")
     print("\nWelcome to Connect Four!")
-    print("You are player B(lue).\n")
+    print("You are player X.\n")
     print_board(board)
 
     while not game_end:
 
-        # scale the amount of actions the AI explores based on how many turns were taken. Still a work in progress
-        if turns_taken == 10:
+        # scale the amount of actions the AI explores based on how many turns were taken.
+        # i'm not gonna lie, this thing beats me more often than I'd like to admit...
+        # even when it's using only a fraction of its power haha
+        if turns_taken == 25:
             max_actions_to_explore = 3
-        elif turns_taken == 15:
+        elif turns_taken == 31:
             max_actions_to_explore = 4
-        elif turns_taken == 20:
+        elif turns_taken == 37:
             max_actions_to_explore = 5
-        elif turns_taken == 25:
-            max_actions_to_explore = 7
 
         player = get_player(board)
 
-        if player == "B":
+        if player == "X":
             player_move = input("\nPlease provide the column for your move: ")
             while (int(player_move) - 1) not in actions(board):
                 player_move = input(
@@ -299,11 +296,17 @@ def main():
         elif player == "O":
             print("\nComputer is thinking...")
 
-            # we can add more code here to help speed up the game
-            if turns_taken == 1:
-                sleep(2)
-                # make initial move close to player's move
-                player_move = random.randint(int(player_move) - 2, int(player_move))
+            if turns_taken <= 9:
+                sleep(1.5)
+                # make initial moves close to player's move... otherwise it takes forever
+                # maybe instead of completely random moves initially, we check if there's any 3 in a row??
+                # ...so that we can make a smarter choice if the player is close to winning
+                if int(player_move) < 7:
+                    player_move = random.randint(int(player_move) - 2, int(player_move))
+                else:
+                    player_move = random.randint(
+                        int(player_move) - 2, int(player_move) - 1
+                    )
             elif turns_taken > 1:
                 sleep(0.5)
                 player_move = minimax(board, max_actions_to_explore)
@@ -316,7 +319,7 @@ def main():
 
         if terminal(board):
             game_end = True
-            print(f"\n\nWinner: {winner(board)}")
+            print(f"\n\nWinner: {winner(board)}\n")
 
 
 if __name__ == "__main__":
